@@ -1,0 +1,4 @@
+customer_id,customer_name,city,state,membership,segment,effective_date
+101,Amit Sharma,Bengaluru,Karnataka,Gold,Premium,2026-04-01
+103,Rahul Verma,Chennai,Tamil Nadu,Gold,Premium,2026-04-05
+104,Neha Patel,Hyderabad,Telangana,Platinum,Premium,2026-04-10
