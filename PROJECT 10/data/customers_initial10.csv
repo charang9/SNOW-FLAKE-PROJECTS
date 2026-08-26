@@ -1,0 +1,6 @@
+customer_id,customer_name,city,state,membership,segment
+101,Amit Sharma,Hyderabad,Telangana,Silver,Regular
+102,Priya Reddy,Warangal,Telangana,Gold,Premium
+103,Rahul Verma,Vijayawada,Andhra Pradesh,Silver,Regular
+104,Neha Patel,Hyderabad,Telangana,Gold,Premium
+105,Arjun Gupta,Nagpur,Maharashtra,Bronze,Regular
