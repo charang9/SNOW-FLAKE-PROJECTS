@@ -1,0 +1,5 @@
+product_id,product_name,subcategory_name,category_name,unit_price
+501,Laptop Pro,Laptops,Electronics,75000.0
+502,Wireless Mouse,Accessories,Electronics,1500.0
+503,Ergonomic Chair,Office,Furniture,12000.0
+504,Coffee Maker,Kitchen,Appliances,4500.0
