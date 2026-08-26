@@ -1,0 +1,4 @@
+treatment_id,treatment_name,diagnosis_group_id,diagnosis_group_name,standard_cost
+501,Coronary Angioplasty,DG-CARD,Cardiology,150000.0
+502,Knee Replacement,DG-ORTH,Orthopedics,220000.0
+503,Appendectomy,DG-SURG,General Surgery,45000.0

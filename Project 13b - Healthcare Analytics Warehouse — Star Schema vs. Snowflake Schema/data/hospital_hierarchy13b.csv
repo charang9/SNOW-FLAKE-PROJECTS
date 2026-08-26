@@ -1,0 +1,4 @@
+hospital_id,hospital_name,city,state,network_id,network_name,network_director
+1001,Apollo Jubilee Hills,Hyderabad,Telangana,10,Apollo Healthcare Group,Dr. Ramesh
+1002,Apollo Reach,Warangal,Telangana,10,Apollo Healthcare Group,Dr. Ramesh
+2001,Manipal Central,Bengaluru,Karnataka,20,Manipal Hospitals,Dr. Priya
