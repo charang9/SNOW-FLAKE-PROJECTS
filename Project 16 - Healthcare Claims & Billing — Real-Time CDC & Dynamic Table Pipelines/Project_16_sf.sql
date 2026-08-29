@@ -1,3 +1,9 @@
+/* Project 16 Is all about data lake using json files,
+bronze(raw data),silver(cleaned and masked),gold(AGGREGATION) - architecture
+and stream 
+and dynamic table 
+and loading batch wise json files */
+
 CREATE OR REPLACE WAREHOUSE WH_16;
 USE WAREHOUSE WH_16;
 
