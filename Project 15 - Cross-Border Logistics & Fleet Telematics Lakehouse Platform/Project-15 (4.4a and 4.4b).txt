@@ -1,0 +1,143 @@
+================================================================================
+PROJECT 15: Cross-Border Logistics & Fleet Telematics Lakehouse Platform
+================================================================================
+Target Modules: 4.4a (Schema-on-Read vs. Schema-on-Write) & 4.4b (Medallion & Time-Travel)
+Environment: Snowflake SQL
+
+--------------------------------------------------------------------------------
+1. PROBLEM STATEMENT & BUSINESS SCENARIO
+--------------------------------------------------------------------------------
+You are a Lead Data Platform Engineer at a global logistics firm operating an 
+IoT fleet management system. 
+
+The edge IoT telematics sensors on trucks stream two types of JSON payloads into Snowflake:
+1. Telematics Ping Events (Location, speed, fuel consumption, driver metrics).
+2. Freight Delivery Clearance Events (Shipment IDs, duties, customs fees, border status).
+
+The data platform follows a **Medallion Architecture**:
+- Bronze Layer (Schema-on-Read Data Lake): Raw, dynamic IoT JSON streams stored in 
+  VARIANT columns.
+- Silver Layer (Schema-on-Write Lakehouse Core): Extracted, cleaned, type-validated 
+  relational tables with calculated metrics (fuel cost, duty calculations) and PII masking.
+- Gold Layer (Business Analytics Mart): Executive dashboards tracking fleet efficiency 
+  and customs duty payouts.
+
+During operations, an IoT firmware update silently alters the payload structure (adding 
+`driver_fatigue_score` and `border_clearance_code`), an invalid non-JSON payload enters 
+the raw queue, and a rogue automation script accidentally wipes customs payout records 
+in the Silver layer. You must build an end-to-end pipeline handling semi-structured ETL, 
+schema evolution, error quarantine, and disaster recovery via Snowflake Time-Travel.
+
+--------------------------------------------------------------------------------
+2. INPUT DATASETS (RAW IoT STREAMING PAYLOADS)
+--------------------------------------------------------------------------------
+
+Batch 1 Payload Stream (Standard Telematics & Delivery Payloads):
+------------------------------------------------------------------
+{"payload_id":"PL-801","payload_type":"TELEMATICS","timestamp":"2026-08-01T06:00:00Z","data":{"trip_id":"TRP-101","vehicle_id":"TRK-9001","driver_name":"John Doe","distance_km":450.0,"fuel_consumed_liters":120.0,"speed_avg":75.0}}
+{"payload_id":"PL-802","payload_type":"CUSTOMS","timestamp":"2026-08-01T06:30:00Z","data":{"shipment_id":"SHP-5001","vehicle_id":"TRK-9001","destination_country":"CAN","declared_value":85000.00,"duty_pct":5.0,"clearance_status":"CLEARED"}}
+{"payload_id":"PL-803","payload_type":"TELEMATICS","timestamp":"2026-08-01T07:00:00Z","data":{"trip_id":"TRP-102","vehicle_id":"TRK-9002","driver_name":"Jane Smith","distance_km":620.0,"fuel_consumed_liters":180.0,"speed_avg":82.0}}
+{"payload_id":"PL-804","payload_type":"CUSTOMS","timestamp":"2026-08-01T07:45:00Z","data":{"shipment_id":"SHP-5002","vehicle_id":"TRK-9002","destination_country":"MEX","declared_value":42000.00,"duty_pct":7.5,"clearance_status":"CLEARED"}}
+
+Batch 2 Payload Stream (Schema Evolution — New Telematics & Customs Fields):
+-----------------------------------------------------------------------------
+{"payload_id":"PL-805","payload_type":"TELEMATICS","timestamp":"2026-08-01T08:15:00Z","data":{"trip_id":"TRP-103","vehicle_id":"TRK-9003","driver_name":"Robert Brown","distance_km":310.0,"fuel_consumed_liters":95.0,"speed_avg":68.0,"driver_fatigue_score":1.2}}
+{"payload_id":"PL-806","payload_type":"CUSTOMS","timestamp":"2026-08-01T08:30:00Z","data":{"shipment_id":"SHP-5003","vehicle_id":"TRK-9003","destination_country":"CAN","declared_value":120000.00,"duty_pct":4.0,"clearance_status":"CLEARED","border_clearance_code":"FAST_PASS_01"}}
+{"payload_id":"PL-807","payload_type":"CUSTOMS","timestamp":"2026-08-01T09:00:00Z","data":{"shipment_id":"SHP-5004","vehicle_id":"TRK-9001","destination_country":"MEX","declared_value":15000.00,"duty_pct":7.5,"clearance_status":"HELD_INSPECTION","border_clearance_code":null}}
+
+Batch 3 Payload Stream (Corrupted Payload & Faulty Readings):
+--------------------------------------------------------------
+{"payload_id":"PL-808","payload_type":"TELEMATICS","timestamp":"2026-08-01T09:30:00Z","data":{"trip_id":"TRP-104","vehicle_id":"TRK-9004","driver_name":"Alice Green","distance_km":0.0,"fuel_consumed_liters":0.0,"speed_avg":0.0,"driver_fatigue_score":0.0}}
+{"MALFORMED_IOT_SENSOR_BINARY_BURST_DATA_ERR"}
+
+--------------------------------------------------------------------------------
+3. STUDENT TASKS & EXPECTED OUTPUTS
+--------------------------------------------------------------------------------
+
+TASK 1: Bronze Data Lake Ingestion & Schema-on-Read Exploration
+- Create Database: `LOGISTICS_LAKEHOUSE_DB`
+- Create Schema: `FLEET_CORE`
+- Create Bronze table `BRONZE_IOT_STREAMS` (`INGEST_ID`, `RAW_PAYLOAD` VARIANT, `RECORDED_AT`).
+- Ingest valid JSON records into `BRONZE_IOT_STREAMS`.
+- Write a Schema-on-Read query extracting `payload_id`, `payload_type`, `timestamp`, 
+  vehicle identifiers, and shipment declared values.
+
+EXPECTED OUTPUT (SELECT COUNT(*) FROM BRONZE_IOT_STREAMS):
++-----------------------+
+| TOTAL_BRONZE_RECORDS  |
++-----------------------+
+| 8                     |
++-----------------------+
+
+
+TASK 2: Dead-Letter Queue Quarantine Strategy
+- Create table `QUARANTINE_IOT_PAYLOADS` (`QUARANTINE_ID`, `RAW_RECORD_TEXT`, `REASON`).
+- Use `TRY_PARSE_JSON` to intercept malformed binary/string entries and populate the quarantine table.
+
+EXPECTED OUTPUT:
++---------------+----------------------------------------------+---------------------+
+| QUARANTINE_ID | RAW_RECORD_TEXT                              | REASON              |
++---------------+----------------------------------------------+---------------------+
+| 1             | MALFORMED_IOT_SENSOR_BINARY_BURST_DATA_ERR  | MALFORMED_JSON_BODY |
++---------------+----------------------------------------------+---------------------+
+
+
+TASK 3: Silver Layer ETL — Schema-on-Write Modeling & Computations
+- Create Silver table `SILVER_CUSTOMS_CLEARANCE`:
+  * Columns: `SHIPMENT_ID`, `PAYLOAD_ID`, `VEHICLE_ID`, `DESTINATION_COUNTRY`, 
+    `DECLARED_VALUE`, `DUTY_PCT`, `DUTY_AMOUNT_DUE`, `BORDER_CODE`, `CLEARANCE_STATUS`
+- Build an ETL query targeting `payload_type = 'CUSTOMS'`:
+  * Calculate `DUTY_AMOUNT_DUE = DECLARED_VALUE * (DUTY_PCT / 100)`
+  * Extract `border_clearance_code` into `BORDER_CODE` (handling missing schema fields as NULL).
+
+EXPECTED OUTPUT:
++-------------+------------+---------------+-------------------+---------------+-----------------+---------------+------------------+
+| SHIPMENT_ID | VEHICLE_ID | DEST_COUNTRY  | DECLARED_VALUE    | DUTY_PCT      | DUTY_AMOUNT_DUE | BORDER_CODE   | CLEARANCE_STATUS |
++-------------+------------+---------------+-------------------+---------------+-----------------+---------------+------------------+
+| SHP-5001    | TRK-9001   | CAN           | 85000.00          | 5.0           | 4250.00         | NULL          | CLEARED          |
+| SHP-5002    | TRK-9002   | MEX           | 42000.00          | 7.5           | 3150.00         | NULL          | CLEARED          |
+| SHP-5003    | TRK-9003   | CAN           | 120000.00         | 4.0           | 4800.00         | FAST_PASS_01  | CLEARED          |
+| SHP-5004    | TRK-9001   | MEX           | 15000.00          | 7.5           | 1125.00         | NULL          | HELD_INSPECTION  |
++-------------+------------+---------------+-------------------+---------------+-----------------+---------------+------------------+
+
+
+TASK 4: Gold Layer Strategic Aggregations
+- Create Gold table `GOLD_COUNTRY_DUTY_SUMMARY` summarizing metrics strictly for 
+  shipments where `CLEARANCE_STATUS = 'CLEARED'`.
+
+EXPECTED OUTPUT:
++--------------+-----------------------+---------------------+-------------------+-------------------+
+| DEST_COUNTRY | TOTAL_CLEARED_VAL     | TOTAL_DUTIES_COLLECTED | AVG_DUTY_RATE_PCT | CLEARED_SHIPMENTS |
++--------------+-----------------------+---------------------+-------------------+-------------------+
+| CAN          | 205000.00             | 9050.00             | 4.41              | 2                 |
+| MEX          | 42000.00              | 3150.00             | 7.50              | 1                 |
++--------------+-----------------------+---------------------+-------------------+-------------------+
+
+
+TASK 5: Disaster Recovery via Snowflake Time-Travel Auditing
+1. Simulate corruption: Run an unauthorized SQL command setting all `CAN` shipments 
+   in `SILVER_CUSTOMS_CLEARANCE` to `CLEARANCE_STATUS = 'REJECTED'`.
+2. Write a Time-Travel query using `AT (OFFSET => ...)` or `BEFORE` to view the original values.
+3. Write a SQL recovery query restoring `SILVER_CUSTOMS_CLEARANCE` back to its 
+   uncorrupted state.
+
+EXPECTED OUTPUT (Post-Recovery Audit Query):
++--------------+---------------------+----------------------+
+| DEST_COUNTRY | CLEARED_COUNT       | REJECTED_COUNT       |
++--------------+---------------------+----------------------+
+| CAN          | 2                   | 0                    |
+| MEX          | 1                   | 0                    |
++--------------+---------------------+----------------------+
+
+
+TASK 6: End-to-End Pipeline Lineage & Reconciliation Audit
+Write a cross-layer audit query comparing declared values across Bronze, Silver, and Gold layers 
+to verify pipeline completeness.
+
+EXPECTED OUTPUT:
++-------------------+-------------------+-----------------+-------------------+
+| BRONZE_GROSS_TOTAL| SILVER_GROSS_TOTAL| GOLD_GROSS_TOTAL| RECONCILED_FLAG   |
++-------------------+-------------------+-----------------+-------------------+
+| 262000.00         | 262000.00         | 247000.00*      | TRUE              |
++-------------------+-------------------+-----------------+-------------------+
+(*Note: Gold totals include CLEARED shipments only: 205000 + 42000 = 247000.00)

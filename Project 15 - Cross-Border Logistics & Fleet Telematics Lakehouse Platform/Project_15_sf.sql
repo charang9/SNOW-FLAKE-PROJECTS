@@ -1,0 +1,211 @@
+CREATE OR REPLACE WAREHOUSE WH_15;
+USE WAREHOUSE WH_15;
+
+CREATE OR REPLACE DATABASE LOGISTICS_LAKEHOUSE_DB;
+USE DATABASE LOGISTICS_LAKEHOUSE_DB;
+
+CREATE OR REPLACE SCHEMA FLEET_CORE;
+USE SCHEMA FLEET_CORE;
+
+CREATE OR REPLACE FILE FORMAT FILE_FORMAT_15
+TYPE = JSON;
+
+CREATE OR REPLACE STAGE STAGE15
+FILE_FORMAT = FILE_FORMAT_15;
+
+/* TASK1 BRONZE LAYER */
+
+CREATE OR REPLACE TABLE BRONZE_IOT_STREAMS
+(
+INGEST_ID INT AUTOINCREMENT START 1 INCREMENT 1 ORDER PRIMARY KEY,
+RAW_PAYLOAD VARIANT,
+RECORDED_AT TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+LIST @STAGE15;
+
+COPY INTO BRONZE_IOT_STREAMS (RAW_PAYLOAD)
+FROM @STAGE15
+FILES = ( 'batch1_payload_stream15.json',
+          'batch2_payload_stream15.json',
+          'batch3_payload_stream15.json'
+)
+ON_ERROR = CONTINUE;
+
+SELECT * FROM BRONZE_IOT_STREAMS;
+
+/* TASK 2 */
+
+CREATE OR REPLACE FILE FORMAT FILE_FORMAT_15B
+TYPE = 'CSV',
+FIELD_DELIMITER = none;
+
+select metadata$filename,
+       METADATA$FILE_ROW_NUMBER,
+       $1
+from @stage15
+(file_format => file_format_15b)
+where TRY_PARSE_JSON($1) IS   NULL;
+
+CREATE OR REPLACE TABLE QUARANTINE_IOT_PAYLOADS
+(
+QUARANTINE_ID INT AUTOINCREMENT START 1 INCREMENT 1 ORDER PRIMARY KEY,
+RAW_RECORD_TEXT VARCHAR(1000),
+REASON VARCHAR(200)
+);
+
+INSERT INTO QUARANTINE_IOT_PAYLOADS
+(RAW_RECORD_TEXT,REASON)
+select   $1,
+        'MALFORMED_JSON_BODY'
+from @stage15
+(file_format => file_format_15b)
+where TRY_PARSE_JSON($1) IS   NULL;
+
+select * from QUARANTINE_IOT_PAYLOADS;
+
+/* TASK 3 SILVER LAYER */
+
+CREATE OR REPLACE TABLE SILVER_CUSTOMS_CLEARANCE
+(
+ SHIPMENT_ID VARCHAR(100),
+ VEHICLE_ID  VARCHAR(100),
+ DEST_COUNTRY  VARCHAR(50),
+ DECLARED_VALUE  NUMBER(10,2),
+ DUTY_PCT  NUMBER(5,1),
+ DUTY_AMOUNT_DUE NUMBER(10,2),
+ BORDER_CODE  VARCHAR(50),
+ CLEARANCE_STATUS VARCHAR(100)
+);
+
+SELECT * FROM SILVER_CUSTOMS_CLEARANCE;
+
+INSERT INTO SILVER_CUSTOMS_CLEARANCE
+(
+SHIPMENT_ID,
+VEHICLE_ID,
+DEST_COUNTRY,
+DECLARED_VALUE,
+DUTY_PCT,
+DUTY_AMOUNT_DUE,
+BORDER_CODE,
+CLEARANCE_STATUS
+)
+SELECT RAW_PAYLOAD:data.shipment_id,
+       RAW_PAYLOAD:data.vehicle_id,
+       RAW_PAYLOAD:data.destination_country,
+       RAW_PAYLOAD:data.declared_value,
+       RAW_PAYLOAD:data.duty_pct,
+       ROUND(RAW_PAYLOAD:data.declared_value::NUMBER(10,2)*(RAW_PAYLOAD:data.duty_pct::NUMBER(5,2)/100),2),
+       RAW_PAYLOAD:data.border_clearance_code,
+       RAW_PAYLOAD:data.clearance_status
+from bronze_iot_streams
+where raw_payload:payload_type = 'CUSTOMS';
+
+select * from silver_customs_clearance;
+
+/* task 4 gold */
+
+create or replace table GOLD_COUNTRY_DUTY_SUMMARY
+(
+DEST_COUNTRY varchar(100),
+TOTAL_CLEARED_VAL number(10,2),
+TOTAL_DUTIES_COLLECTED number(10,2),
+AVG_DUTY_RATE_PCT number(5,2),
+CLEARED_SHIPMENTS int
+);
+
+select* from GOLD_COUNTRY_DUTY_SUMMARY;
+
+insert into gold_country_duty_summary
+(
+DEST_COUNTRY,
+TOTAL_CLEARED_VAL,
+TOTAL_DUTIES_COLLECTED,
+AVG_DUTY_RATE_PCT,
+CLEARED_SHIPMENTS
+)
+select DEST_COUNTRY,
+       sum(DECLARED_VALUE),
+       sum(DUTY_AMOUNT_DUE),
+       ROUND(avg(DUTY_PCT),2),
+       count(*)
+from silver_customs_clearance
+where CLEARANCE_STATUS = 'CLEARED'
+GROUP BY DEST_COUNTRY
+ORDER BY DEST_COUNTRY;
+
+SELECT * FROM GOLD_COUNTRY_DUTY_SUMMARY;
+
+/* TASK 5 TIME TRAVEL */
+
+
+/* UPDATING WRONG VALUES */
+
+UPDATE silver_customs_clearance
+SET CLEARANCE_STATUS = 'REJECTED'
+WHERE DEST_COUNTRY = 'CAN';
+
+/* SEEING THROUGH TIME */
+
+SELECT DEST_COUNTRY,
+       CLEARANCE_STATUS
+from silver_customs_clearance
+AT (OFFSET => -600)
+where DEST_COUNTRY = 'CAN';
+
+/* recovering the data */
+
+UPDATE silver_customs_clearance s
+SET CLEARANCE_STATUS = o.CLEARANCE_STATUS
+FROM (
+SELECT DEST_COUNTRY,
+       CLEARANCE_STATUS
+from silver_customs_clearance
+AT (OFFSET => -600)
+where DEST_COUNTRY = 'CAN'
+) o
+where o.dest_country = s.dest_country
+    and s.dest_country = 'CAN';
+
+/* VALIDATING */
+
+select DEST_COUNTRY,
+       count_if(CLEARANCE_STATUS = 'CLEARED') CLEARED_COUNT,
+       count_if(CLEARANCE_STATUS = 'REJECTED') REJECTED_COUNT
+FROM SILVER_CUSTOMS_CLEARANCE
+GROUP BY DEST_COUNTRY;
+
+/* TASK 6 */
+
+
+select b.BRONZE_GROSS_TOTAL,
+       s.SILVER_GROSS_TOTAL,
+       g.GOLD_GROSS_TOTAL,
+       case 
+            when b.BRONZE_GROSS_TOTAL = s.SILVER_GROSS_TOTAL
+            then TRUE
+            ELSE FALSE
+        END AS RECONCILED_FLAG
+from (
+SELECT sum(RAW_PAYLOAD:data.declared_value) as BRONZE_GROSS_TOTAL
+FROM BRONZE_IOT_STREAMS
+) b
+cross join (
+select sum(DECLARED_VALUE) as SILVER_GROSS_TOTAL
+from silver_customs_clearance 
+) s
+cross join (
+select sum(TOTAL_CLEARED_VAL) as GOLD_GROSS_TOTAL
+from gold_country_duty_summary
+) g;
+       
+
+
+
+
+
+
+
+
+

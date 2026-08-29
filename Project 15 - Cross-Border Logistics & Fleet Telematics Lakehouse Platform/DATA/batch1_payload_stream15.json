@@ -1,0 +1,4 @@
+{"payload_id":"PL-801","payload_type":"TELEMATICS","timestamp":"2026-08-01T06:00:00Z","data":{"trip_id":"TRP-101","vehicle_id":"TRK-9001","driver_name":"John Doe","distance_km":450.0,"fuel_consumed_liters":120.0,"speed_avg":75.0}}
+{"payload_id":"PL-802","payload_type":"CUSTOMS","timestamp":"2026-08-01T06:30:00Z","data":{"shipment_id":"SHP-5001","vehicle_id":"TRK-9001","destination_country":"CAN","declared_value":85000.00,"duty_pct":5.0,"clearance_status":"CLEARED"}}
+{"payload_id":"PL-803","payload_type":"TELEMATICS","timestamp":"2026-08-01T07:00:00Z","data":{"trip_id":"TRP-102","vehicle_id":"TRK-9002","driver_name":"Jane Smith","distance_km":620.0,"fuel_consumed_liters":180.0,"speed_avg":82.0}}
+{"payload_id":"PL-804","payload_type":"CUSTOMS","timestamp":"2026-08-01T07:45:00Z","data":{"shipment_id":"SHP-5002","vehicle_id":"TRK-9002","destination_country":"MEX","declared_value":42000.00,"duty_pct":7.5,"clearance_status":"CLEARED"}}
