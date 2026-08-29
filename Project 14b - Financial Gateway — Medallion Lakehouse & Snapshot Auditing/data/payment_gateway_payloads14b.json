@@ -1,0 +1,8 @@
+{"txn_id":"TXN-901","txn_time":"2026-07-10T10:00:00Z","merchant_id":301,"merchant_name":"TechZone","card_number":"4111222233334444","amount":50000.00,"fee_pct":2.5,"status":"APPROVED"}
+{"txn_id":"TXN-902","txn_time":"2026-07-10T10:15:00Z","merchant_id":302,"merchant_name":"StyleHub","card_number":"5500111122223333","amount":12000.00,"fee_pct":3.0,"status":"APPROVED"}
+{"txn_id":"TXN-903","txn_time":"2026-07-10T11:00:00Z","merchant_id":301,"merchant_name":"TechZone","card_number":"4111222233334444","amount":25000.00,"fee_pct":2.5,"status":"PENDING"}
+{"txn_id":"TXN-904","txn_time":"2026-07-10T11:30:00Z","merchant_id":303,"merchant_name":"FreshMart","card_number":"4000111122223333","amount":8500.00,"fee_pct":1.8,"status":"APPROVED"}
+{"txn_id":"TXN-905","txn_time":"2026-07-10T12:00:00Z","merchant_id":302,"merchant_name":"StyleHub","card_number":"5500111122223333","amount":45000.00,"fee_pct":3.0,"status":"DECLINED"}
+{"txn_id":"TXN-906","txn_time":"2026-07-10T12:30:00Z","merchant_id":301,"merchant_name":"TechZone","card_number":"4111222233334444","amount":150000.00,"fee_pct":2.5,"status":"APPROVED"}
+{"txn_id":"TXN-907","txn_time":"2026-07-10T13:00:00Z","merchant_id":303,"merchant_name":"FreshMart","card_number":"4000111122223333","amount":3200.00,"fee_pct":1.8,"status":"APPROVED"}
+{"txn_id":"TXN-908","txn_time":"2026-07-10T13:15:00Z","merchant_id":302,"merchant_name":"StyleHub","card_number":"5500111122223333","amount":67000.00,"fee_pct":3.0,"status":"PENDING"}
