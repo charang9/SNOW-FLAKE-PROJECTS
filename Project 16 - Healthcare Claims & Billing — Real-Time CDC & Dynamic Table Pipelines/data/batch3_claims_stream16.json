@@ -1,0 +1,2 @@
+{"claim_id":"CLM-306","submitted_at":"2026-08-10T10:30:00Z","patient_id":5002,"provider_id":"PRV-12","diagnosis_code":"ICD-10-A","billed_amount":6000.00,"copay_amount":200.00,"status":"APPROVED"}
+{"INVALID_PAYLOAD_UNPARSEABLE_STRING"}

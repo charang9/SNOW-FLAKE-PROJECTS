@@ -1,0 +1,3 @@
+{"claim_id":"CLM-301","submitted_at":"2026-08-10T08:00:00Z","patient_id":5001,"provider_id":"PRV-10","diagnosis_code":"ICD-10-A","billed_amount":15000.00,"copay_amount":500.00,"status":"APPROVED"}
+{"claim_id":"CLM-303","submitted_at":"2026-08-10T08:30:00Z","patient_id":5003,"provider_id":"PRV-10","diagnosis_code":"ICD-10-C","billed_amount":45000.00,"copay_amount":1500.00,"status":"DENIED"}
+{"claim_id":"CLM-305","submitted_at":"2026-08-10T10:00:00Z","patient_id":5005,"provider_id":"PRV-11","diagnosis_code":"ICD-10-B","billed_amount":120000.00,"copay_amount":2500.00,"status":"APPROVED"}
