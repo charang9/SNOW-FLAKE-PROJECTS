@@ -1,0 +1,4 @@
+{"pos_id":"POS-1001","timestamp":"2026-08-16T10:00:00Z","hashed_email":"a3f8c12...","store_id":"STORE-01","cpg_brand":"ApexFoods","basket_value":145.50,"loyalty_tier":"GOLD"}
+{"pos_id":"POS-1002","timestamp":"2026-08-16T10:15:00Z","hashed_email":"b9e4d56...","store_id":"STORE-01","cpg_brand":"ApexFoods","basket_value":89.20,"loyalty_tier":"SILVER"}
+{"pos_id":"POS-1003","timestamp":"2026-08-16T10:30:00Z","hashed_email":"c1a2b3c...","store_id":"STORE-02","cpg_brand":"ApexFoods","basket_value":210.00,"loyalty_tier":"GOLD"}
+{"pos_id":"POS-1004","timestamp":"2026-08-16T11:00:00Z","hashed_email":"d4e5f6a...","store_id":"STORE-02","cpg_brand":"BioDrink","basket_value":35.00,"loyalty_tier":"BRONZE"}
