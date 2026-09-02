@@ -1,0 +1,4 @@
+{"txn_id":"TXN-7001","timestamp":"2026-08-15T09:00:00Z","client_id":101,"client_ssn":"999-12-3456","region":"NA","account_no":"ACT-5544","amount":250000.00,"status":"SETTLED"}
+{"txn_id":"TXN-7002","timestamp":"2026-08-15T09:15:00Z","client_id":102,"client_ssn":"888-98-7654","region":"EU","account_no":"ACT-7711","amount":120000.00,"status":"SETTLED"}
+{"txn_id":"TXN-7003","timestamp":"2026-08-15T09:30:00Z","client_id":103,"client_ssn":"777-45-6789","region":"NA","account_no":"ACT-3322","amount":450000.00,"status":"PENDING"}
+{"txn_id":"TXN-7004","timestamp":"2026-08-15T10:00:00Z","client_id":104,"client_ssn":"666-23-8901","region":"EU","account_no":"ACT-9988","amount":85000.00,"status":"SETTLED"}

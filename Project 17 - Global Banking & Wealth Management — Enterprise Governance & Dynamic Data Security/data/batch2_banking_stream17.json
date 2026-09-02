@@ -1,0 +1,2 @@
+{"txn_id":"TXN-7005","timestamp":"2026-08-15T10:30:00Z","client_id":105,"client_ssn":"555-67-1234","region":"NA","account_no":"ACT-1144","amount":1000000.00,"status":"SETTLED","aml_risk_score":"LOW"}
+{"txn_id":"TXN-7006","timestamp":"2026-08-15T11:00:00Z","client_id":106,"client_ssn":"444-89-4321","region":"EU","account_no":"ACT-6633","amount":310000.00,"status":"SETTLED","aml_risk_score":"MEDIUM"}

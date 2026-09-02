@@ -1,0 +1,2 @@
+{"txn_id":"TXN-7007","timestamp":"2026-08-15T11:30:00Z","client_id":107,"client_ssn":"333-11-2222","region":"NA","account_no":"ACT-2211","amount":0.00,"status":"FAILED","aml_risk_score":"HIGH"}
+{"INVALID_RAW_WIRE_PAYLOAD_UNPARSEABLE"}
