@@ -1,0 +1,188 @@
+CREATE OR REPLACE WAREHOUSE WH_19A;
+USE WAREHOUSE WH_19A;
+
+CREATE OR REPLACE DATABASE ECOMMERCE_SALES_DB;
+USE DATABASE ECOMMERCE_SALES_DB;
+
+CREATE OR REPLACE SCHEMA SALES_CORE;
+USE SCHEMA SALES_CORE;
+
+CREATE OR REPLACE FILE FORMAT FILE_FORMAT_19A
+TYPE = 'CSV'
+FIELD_DELIMITER = ','
+SKIP_HEADER = 1;
+
+CREATE OR REPLACE STAGE STAGE19A
+FILE_FORMAT = FILE_FORMAT_19A;
+
+LIST @STAGE19A;
+
+/* TASK 1 */
+
+CREATE OR REPLACE TABLE DIM_ORDER_INDICATORS
+(
+INDICATOR_SK INT AUTOINCREMENT START 1 INCREMENT 1 ORDER PRIMARY KEY,
+PAYMENT_METHOD VARCHAR(100),
+SHIPPING_OPTION VARCHAR(100),
+GIFT_WRAP_FLAG VARCHAR(100)
+);
+
+SELECT * FROM DIM_ORDER_INDICATORS;
+
+INSERT INTO DIM_ORDER_INDICATORS
+(
+PAYMENT_METHOD,
+SHIPPING_OPTION,
+GIFT_WRAP_FLAG
+)
+SELECT o.$7::VARCHAR(50),
+       o.$8::varchar(50),
+       o.$9::VARCHAR(50)
+FROM @stage19a/raw_orders19A.csv o;
+
+SELECT * FROM DIM_ORDER_INDICATORS;
+
+/* TASK 2 */
+
+CREATE OR REPLACE TABLE FACT_SALES_TRANSACTIONS
+(
+    ORDER_ID STRING,
+    ORDER_DATE DATE,
+    USER_ID STRING,
+    STORE_ID STRING,
+    INDICATOR_SK NUMBER,
+    AMOUNT NUMBER(10,2),
+    TAX NUMBER(10,2)
+);
+
+INSERT INTO FACT_SALES_TRANSACTIONS
+(
+    ORDER_ID,
+    ORDER_DATE,
+    USER_ID,
+    STORE_ID,
+    INDICATOR_SK,
+    AMOUNT,
+    TAX
+)
+SELECT
+    o.$1::STRING,
+    o.$2::DATE,
+    o.$3::STRING,
+    o.$4::STRING,
+    d.INDICATOR_SK,
+    o.$5::NUMBER(10,2),
+    o.$6::NUMBER(10,2)
+FROM @STAGE19A/raw_orders19A.csv o
+JOIN DIM_ORDER_INDICATORS d
+ON o.$7::STRING = d.PAYMENT_METHOD
+AND o.$8::STRING = d.SHIPPING_OPTION
+AND o.$9::STRING = d.GIFT_WRAP_FLAG;
+
+select order_id,indicator_sk,amount
+from FACT_SALES_TRANSACTIONS;
+
+/* we can get the data from the csv files itself but its not clean so i created tables which are cleaner */
+
+CREATE OR REPLACE TABLE RAW_ORDERS
+(
+    ORDER_ID STRING,
+    ORDER_DATE DATE,
+    USER_ID STRING,
+    STORE_ID STRING,
+    AMOUNT NUMBER(10,2),
+    TAX NUMBER(10,2),
+    PAYMENT_METHOD STRING,
+    SHIPPING_OPTION STRING,
+    GIFT_WRAP_FLAG STRING
+);
+COPY INTO RAW_ORDERS
+FROM @STAGE19A/raw_orders19A.csv;
+
+CREATE OR REPLACE TABLE RAW_INVENTORY
+(
+    SNAPSHOT_DATE DATE,
+    STORE_ID STRING,
+    PRODUCT_ID STRING,
+    QTY_ON_HAND NUMBER,
+    UNIT_COST NUMBER(10,2)
+);
+COPY INTO RAW_INVENTORY
+FROM @STAGE19A/raw_inventory19A.csv;
+
+CREATE OR REPLACE TABLE RAW_FULFILLMENT
+(
+    ORDER_ID STRING,
+    ORDER_DATE DATE,
+    PICK_DATE DATE,
+    SHIP_DATE DATE,
+    DELIVERY_DATE DATE
+);
+COPY INTO RAW_FULFILLMENT
+FROM @STAGE19A/raw_fulfillment19A.csv;
+
+/* task 3 */
+
+select * from raw_inventory;
+
+select snapshot_date,
+       store_id,
+       sum(qty_on_hand) TOTAL_UNITS_HELD,
+       sum(qty_on_hand*unit_cost) TOTAL_INVENTORY_VAL
+from raw_inventory
+group by snapshot_date,store_id
+order by snapshot_date,store_id;
+
+/* task 4 */
+
+CREATE OR REPLACE TABLE FACT_ORDER_FULFILLMENT
+(
+    ORDER_ID STRING,
+    PICK_LAG_DAYS NUMBER,
+    SHIP_LAG_DAYS NUMBER,
+    DELIVERY_LAG_DAYS NUMBER,
+    TOTAL_FULFILLMENT_DAYS NUMBER
+);
+
+INSERT INTO FACT_ORDER_FULFILLMENT
+(
+ORDER_ID,
+PICK_LAG_DAYS,
+SHIP_LAG_DAYS,
+DELIVERY_LAG_DAYS,
+TOTAL_FULFILLMENT_DAYS
+)
+select order_id,
+       pick_date-order_date,
+       ship_date - pick_date,
+       delivery_date - ship_date,
+       delivery_date - order_date
+from raw_fulfillment
+ORDER BY order_id;
+
+SELECT * FROM FACT_ORDER_FULFILLMENT
+where DELIVERY_LAG_DAYS is not null;
+
+/* task 5 */
+
+select order_id,
+       order_date,
+       case 
+       when ship_date is null and delivery_date is null
+       then 'PICKED_NOT_SHIPPED'
+       else 'SHIPPED_NOT_DELIVERED'
+       end CURRENT_STATUS
+from raw_fulfillment
+where delivery_date is null;
+
+/* task 6 */
+select payment_method,
+       count(*) TOTAL_ORDERS,
+       sum(amount) TOTAL_REVENUE
+from raw_orders
+group by payment_method;
+
+
+
+
+

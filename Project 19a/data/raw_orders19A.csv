@@ -1,0 +1,7 @@
+order_id,order_date,user_id,store_id,amount,tax,payment_method,shipping_option,gift_wrap_flag
+ORD-101,2026-08-20,U-401,STR-10,120.0,10.0,Credit,Express,Y
+ORD-102,2026-08-20,U-402,STR-10,250.0,20.0,UPI,Standard,N
+ORD-103,2026-08-21,U-403,STR-11,75.0,5.0,Credit,Express,N
+ORD-104,2026-08-21,U-404,STR-11,410.0,30.0,NetBanking,Standard,Y
+ORD-105,2026-08-22,U-401,STR-10,190.0,15.0,UPI,Express,Y
+ORD-106,2026-08-22,U-405,STR-12,310.0,25.0,Credit,Standard,N
